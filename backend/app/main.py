@@ -1,10 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, Query, Response
+from fastapi import FastAPI, Depends, HTTPException, WebSocket, Query, Response, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from app.auth import create_access_token, decode_token, hash_password, verify_password, get_db, create_refresh_token
 from app.models import User
 from app.database import get_db, create_all_tables
-from app.schemas import UserCreate, UserResponse, Token
+from app.schemas import UserCreate, UserResponse, Token, LoginRequest
 
 app = FastAPI()
 
@@ -20,11 +20,10 @@ html = """
         <ul id="messages"></ul>
         <script>
             const connectWebSocket = () => {
-                let csrfToken = document.cookie.split('; ')
-                    .find(row => row.startsWith('access_token'))
-                    ?.split('=')[1];
-
-                let ws = new WebSocket(`ws://localhost:8000/ws?csrf_token=${csrfToken}`);
+                let ws = new WebSocket(`ws://localhost:8000/ws`);
+                ws.onopen = () => {
+                    console.log("WebSocket connection established.");
+                };
                 ws.onmessage = (event) => {
                     let messages = document.getElementById('messages');
                     let message = document.createElement('li');
@@ -36,7 +35,6 @@ html = """
     </body>
 </html>
 """
-
 
 @app.on_event("startup")
 async def startup_event():
@@ -63,47 +61,85 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@app.post("/login", response_model=Token)
-def login(username: str, password: str, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.hashed_password):
+@app.post("/login")
+def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
+    # Retrieve the user by username
+    user = db.query(User).filter(User.username == login_data.username).first()
+
+    # If user doesn't exist or password doesn't match, raise an error
+    if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({"sub": username})
-    refresh_token = create_refresh_token({"sub": username})
+    # Generate access and refresh tokens
+    access_token = create_access_token({"sub": login_data.username})
+    refresh_token = create_refresh_token({"sub": login_data.username})
+
+    # Set tokens as HttpOnly cookies (using secure cookies for production)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,  # Ensure you use HTTPS for production
+        samesite="Strict"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="Strict"
+    )
 
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
+@app.post("/refresh")
+def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
+    # Extract refresh_token from cookies
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token not provided")
 
-@app.get("/logout")
-def logout():
-    response = Response(content={"msg": "Logout successful"})
-    response.delete_cookie(key="access_token")
-    return response
-
-
-@app.post("/refresh", response_model=Token)
-def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     try:
         payload = decode_token(refresh_token)
         username = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-        # Reissue a new access token
+        # Issue a new access token
         new_access_token = create_access_token({"sub": username})
-        return {"access_token": new_access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=True,
+            samesite="Strict"
+        )
 
+        return {"msg": "Access token refreshed"}
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
+@app.get("/logout")
+def logout(response: Response):
+    # Delete the cookies
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"msg": "Logged out successfully"}
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, csrf_token: str = Query(...)):
-    await websocket.accept()
+async def websocket_endpoint(websocket: WebSocket, request: Request):
+    # Extract access_token from cookies
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        await websocket.close()
+        return
+
     try:
-        payload = decode_token(csrf_token)
+        payload = decode_token(access_token)
         username = payload.get("sub")
+        await websocket.accept()
         await websocket.send_text(f"Welcome, {username}! Your WebSocket is authenticated.")
     except HTTPException as e:
         await websocket.send_text(f"Authentication failed: {e.detail}")
