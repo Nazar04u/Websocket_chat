@@ -1,7 +1,9 @@
+import json
 import secrets
 
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
@@ -34,45 +36,22 @@ from app.auth import (
 
 app = FastAPI()
 
-manager = ConnectionManager()
 
-html = """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>WebSocket with pyjwt</title>
-    </head>
-    <body>
-        <h1>WebSocket Authentication</h1>
-        <button onclick="connectWebSocket()">Connect</button>
-        <ul id="messages"></ul>
-        <script>
-            const connectWebSocket = () => {
-                let ws = new WebSocket(`ws://localhost:8000/ws`);
-                ws.onopen = () => {
-                    console.log("WebSocket connection established.");
-                };
-                ws.onmessage = (event) => {
-                    let messages = document.getElementById('messages');
-                    let message = document.createElement('li');
-                    message.textContent = event.data;
-                    messages.appendChild(message);
-                };
-            };
-        </script>
-    </body>
-</html>
-"""
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins, change this to specific URLs for more security
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+
+manager = ConnectionManager()
 
 
 @app.on_event("startup")
 async def startup_event():
     create_all_tables()
-
-
-@app.get("/")
-def read_root():
-    return HTMLResponse(html)
 
 
 @app.post("/register", response_model=UserResponse)
@@ -106,16 +85,22 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
         value=access_token,
         httponly=True,
         secure=True,
-        samesite="Strict"
+        samesite="strict"
     )
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
         secure=True,
-        samesite="Strict"
+        samesite="strict"
     )
-
+    response.set_cookie(
+        key="csrf_token",
+        value=csrf_token,
+        httponly=True,
+        secure=True,
+        samesite="strict"
+    )
     return JSONResponse(
         content={
             "access_token": access_token,
@@ -163,27 +148,20 @@ def logout(response: Response):
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, request: Request):
-    access_token = request.cookies.get("access_token")
-    csrf_token = request.query_params.get("csrf_token")  # CSRF token sent via query params
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    # Receive initial message with tokens
+    data = await websocket.receive_text()
+    message = json.loads(data)
+    access_token = message.get("access_token")
+    csrf_token = message.get("csrf_token")
 
     if not access_token or not csrf_token:
         await websocket.close(code=1008, reason="Missing authentication tokens")
         return
 
-    try:
-        payload = decode_token(access_token)
-        username = payload.get("sub")
-        if not username:
-            raise HTTPException(status_code=401, detail="Invalid access token")
-
-        # Connect WebSocket and associate it with the CSRF token
-        await manager.connect(websocket, csrf_token)
-        await websocket.send_text(f"Welcome, {username}! Your WebSocket is authenticated.")
-    except HTTPException as e:
-        await websocket.close(code=1008, reason=f"Authentication failed: {e.detail}")
-    except Exception:
-        await websocket.close(code=1008, reason="Unexpected error")
+    # Validate tokens and proceed
+    await manager.connect(websocket, csrf_token, access_token)
 
 
 @app.websocket("/communicate")

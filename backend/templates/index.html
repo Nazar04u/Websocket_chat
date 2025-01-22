@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Authentication</title>
+</head>
+<body>
+    <h1>WebSocket Authentication with CSRF</h1>
+    <button onclick="connectWebSocket()">Connect</button>
+    <ul id="messages"></ul>
+
+    <script>
+        const csrfToken = "856aa4aff5ccb9d3215cd54f4563a1565f1124ed939d0cfb619063dd5298b542"; // Replace with actual CSRF token
+        const connectWebSocket = () => {
+            const ws = new WebSocket(`ws://localhost:8008/ws?csrf_token=${csrfToken}`);
+
+            ws.onopen = () => {
+                console.log("WebSocket connection established.");
+            };
+
+            ws.onmessage = (event) => {
+                let messages = document.getElementById("messages");
+                let message = document.createElement("li");
+                message.textContent = event.data;
+                messages.appendChild(message);
+            };
+
+            ws.onerror = (event) => {
+                console.error("WebSocket error observed:", event);
+            };
+
+            ws.onclose = (event) => {
+                console.log("WebSocket connection closed:", event.reason);
+            };
+        };
+    </script>
+</body>
+</html>

@@ -1,31 +1,41 @@
-from fastapi import WebSocket
-from typing import Dict
+from fastapi import WebSocket, HTTPException
+
+from app.auth import decode_token
 
 
 class ConnectionManager:
-    """Class defining socket events with CSRF token support"""
-
     def __init__(self):
-        """Initialize the manager with a dictionary to track connections and CSRF tokens"""
-        self.active_connections: Dict[WebSocket, str] = {}
+        self.active_connections: dict = {}
 
-    async def connect(self, websocket: WebSocket, csrf_token: str):
-        """
-        Connect event: Accepts a WebSocket connection and associates it with a CSRF token.
-        """
-        await websocket.accept()
-        self.active_connections[websocket] = csrf_token
+    async def connect(self, websocket: WebSocket, csrf_token: str, access_token: str):
+        """Connect a WebSocket and associate it with a CSRF token and access token."""
+        try:
+            # Decode the access token to verify the user
+            payload = decode_token(access_token)
+            username = payload.get("sub")
+            if not username:
+                raise HTTPException(status_code=401, detail="Invalid access token")
 
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        """Send a direct message to a specific WebSocket connection"""
-        if websocket in self.active_connections:
-            await websocket.send_text(message)
+            # Store the username and csrf_token with the WebSocket
+            self.active_connections[websocket] = {
+                "username": username,
+                "csrf_token": csrf_token
+            }
+            await websocket.send_text(f"Welcome, {username}! Your WebSocket is authenticated.")
+
+        except HTTPException as e:
+            await websocket.close(code=1008, reason=f"Authentication failed: {e.detail}")
+        except Exception as e:
+            await websocket.close(code=1008, reason="Unexpected error")
 
     def disconnect(self, websocket: WebSocket):
-        """Disconnect event: Removes a WebSocket connection"""
-        if websocket in self.active_connections:
-            del self.active_connections[websocket]
+        """Disconnect the WebSocket and remove it from active connections."""
+        self.active_connections.pop(websocket, None)
 
-    def validate_csrf_token(self, websocket: WebSocket, csrf_token: str) -> bool:
-        """Validate the CSRF token for a specific WebSocket connection"""
-        return self.active_connections.get(websocket) == csrf_token
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        """Send a personal message to a specific WebSocket."""
+        await websocket.send_text(message)
+
+    def get_user_info(self, websocket: WebSocket):
+        """Retrieve user information associated with the WebSocket."""
+        return self.active_connections.get(websocket, None)
