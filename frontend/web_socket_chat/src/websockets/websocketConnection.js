@@ -6,6 +6,7 @@ function WebSocketConnection() {
     const [password, setPassword] = useState("");
     const [messages, setMessages] = useState([]);
     const [error, setError] = useState(null);
+    const [csrfToken, setCsrfToken] = useState("");
 
     const connectWebSocket = async () => {
         try {
@@ -18,6 +19,7 @@ function WebSocketConnection() {
             });
     
             const { csrf_token, access_token } = response.data;
+            setCsrfToken(csrf_token);
             // Establish WebSocket connection
             const ws = new WebSocket("ws://localhost:8008/ws");
     

@@ -94,13 +94,6 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
         secure=True,
         samesite="strict"
     )
-    response.set_cookie(
-        key="csrf_token",
-        value=csrf_token,
-        httponly=True,
-        secure=True,
-        samesite="strict"
-    )
     return JSONResponse(
         content={
             "access_token": access_token,
