@@ -1,12 +1,40 @@
-from fastapi import FastAPI, Depends, HTTPException, WebSocket, Query, Response, Request
+import secrets
+
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
-from app.auth import create_access_token, decode_token, hash_password, verify_password, get_db, create_refresh_token
+from starlette.responses import JSONResponse
+from starlette.websockets import WebSocketDisconnect
+
+from app.websocket.manager import ConnectionManager
 from app.models import User
-from app.database import get_db, create_all_tables
-from app.schemas import UserCreate, UserResponse, Token, LoginRequest
+from app.database import (
+    get_db,
+    create_all_tables
+)
+from fastapi import (
+    FastAPI,
+    Depends,
+    HTTPException,
+    WebSocket,
+    Response,
+    Request
+)
+from app.schemas import (
+    UserCreate,
+    UserResponse,
+    LoginRequest
+)
+from app.auth import (
+    create_access_token,
+    decode_token,
+    hash_password,
+    verify_password,
+    create_refresh_token
+)
 
 app = FastAPI()
+
+manager = ConnectionManager()
 
 html = """
 <!DOCTYPE html>
@@ -36,6 +64,7 @@ html = """
 </html>
 """
 
+
 @app.on_event("startup")
 async def startup_event():
     create_all_tables()
@@ -63,23 +92,20 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/login")
 def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    # Retrieve the user by username
     user = db.query(User).filter(User.username == login_data.username).first()
 
-    # If user doesn't exist or password doesn't match, raise an error
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Generate access and refresh tokens
     access_token = create_access_token({"sub": login_data.username})
     refresh_token = create_refresh_token({"sub": login_data.username})
+    csrf_token = secrets.token_hex(32)  # Generate a secure random CSRF token
 
-    # Set tokens as HttpOnly cookies (using secure cookies for production)
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=True,  # Ensure you use HTTPS for production
+        secure=True,
         samesite="Strict"
     )
     response.set_cookie(
@@ -90,7 +116,15 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
         samesite="Strict"
     )
 
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+    return JSONResponse(
+        content={
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "csrf_token": csrf_token,  # Return CSRF token to the client
+            "token_type": "bearer",
+        }
+    )
+
 
 @app.post("/refresh")
 def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
@@ -130,17 +164,35 @@ def logout(response: Response):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, request: Request):
-    # Extract access_token from cookies
     access_token = request.cookies.get("access_token")
-    if not access_token:
-        await websocket.close()
+    csrf_token = request.query_params.get("csrf_token")  # CSRF token sent via query params
+
+    if not access_token or not csrf_token:
+        await websocket.close(code=1008, reason="Missing authentication tokens")
         return
 
     try:
         payload = decode_token(access_token)
         username = payload.get("sub")
-        await websocket.accept()
+        if not username:
+            raise HTTPException(status_code=401, detail="Invalid access token")
+
+        # Connect WebSocket and associate it with the CSRF token
+        await manager.connect(websocket, csrf_token)
         await websocket.send_text(f"Welcome, {username}! Your WebSocket is authenticated.")
     except HTTPException as e:
-        await websocket.send_text(f"Authentication failed: {e.detail}")
-        await websocket.close()
+        await websocket.close(code=1008, reason=f"Authentication failed: {e.detail}")
+    except Exception:
+        await websocket.close(code=1008, reason="Unexpected error")
+
+
+@app.websocket("/communicate")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_personal_message(f"Received:{data}", websocket)
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.send_personal_message("Bye!!!", websocket)
