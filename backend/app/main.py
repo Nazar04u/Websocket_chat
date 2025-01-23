@@ -1,7 +1,6 @@
 import json
 import secrets
 
-from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -76,8 +75,8 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
     if not user or not verify_password(login_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({"sub": login_data.username})
-    refresh_token = create_refresh_token({"sub": login_data.username})
+    access_token = create_access_token({"sub": login_data.username}).decode('utf-8')
+    refresh_token = create_refresh_token({"sub": login_data.username}).decode('utf-8')
     csrf_token = secrets.token_hex(32)  # Generate a secure random CSRF token
 
     response.set_cookie(
