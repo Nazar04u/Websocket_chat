@@ -159,7 +159,3 @@ async def initialize_connection(websocket: WebSocket):
         return
     await manager.connect(websocket, csrf_token, access_token)
 
-
-@app.websocket("/communicate/{username}")
-async def websocket_endpoint(websocket: WebSocket, username: str):
-    pass
