@@ -3,6 +3,7 @@ from typing import Dict, List
 from fastapi import WebSocket, HTTPException
 
 from app.auth import decode_token
+from app.websocket.verify_websocket import verify_connection
 
 
 class ConnectionManager:
@@ -12,9 +13,8 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket, csrf_token: str, access_token: str):
         """Connect a WebSocket and associate it with a CSRF token and access token."""
         try:
-            # Decode the access token to verify the user
-            payload = decode_token(access_token)
-            username = payload.get("sub")
+            username = await verify_connection(websocket, access_token)
+
             if not username:
                 raise HTTPException(status_code=401, detail="Invalid access token")
 
@@ -40,6 +40,7 @@ class ConnectionManager:
 
     def get_user_info(self, websocket: WebSocket):
         """Retrieve user information associated with the WebSocket."""
+        print(self.active_connections)
         return self.active_connections.get(websocket, None)
 
 

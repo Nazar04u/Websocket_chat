@@ -32,6 +32,7 @@ from app.auth import (
     verify_password,
     create_refresh_token
 )
+from app.websocket.verify_websocket import verify_connection
 
 app = FastAPI()
 
@@ -153,12 +154,9 @@ async def initialize_connection(websocket: WebSocket):
     message = json.loads(data)
     access_token = message.get("access_token")
     csrf_token = message.get("csrf_token")
-
     if not access_token or not csrf_token:
         await websocket.close(code=1008, reason="Missing authentication tokens")
         return
-
-    # Validate tokens and proceed
     await manager.connect(websocket, csrf_token, access_token)
 
 
