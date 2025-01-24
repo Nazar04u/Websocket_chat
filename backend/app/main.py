@@ -123,7 +123,7 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
             value=new_access_token,
             httponly=True,
             secure=True,
-            samesite="Strict"
+            samesite="strict"
         )
 
         return {"msg": "Access token refreshed"}
@@ -139,8 +139,14 @@ def logout(response: Response):
     return {"msg": "Logged out successfully"}
 
 
+@app.get("/users/", response_model=list[UserResponse])
+async def get_candidates(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return users
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
+async def initialize_connection(websocket: WebSocket):
     await websocket.accept()
     # Receive initial message with tokens
     data = await websocket.receive_text()
@@ -156,13 +162,6 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket, csrf_token, access_token)
 
 
-@app.websocket("/communicate")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    try:
-        while True:
-            data = await websocket.receive_text()
-            await manager.send_personal_message(f"Received:{data}", websocket)
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        await manager.send_personal_message("Bye!!!", websocket)
+@app.websocket("/communicate/{username}")
+async def websocket_endpoint(websocket: WebSocket, username: str):
+    pass

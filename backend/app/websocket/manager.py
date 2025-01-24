@@ -1,3 +1,5 @@
+from typing import Dict, List
+
 from fastapi import WebSocket, HTTPException
 
 from app.auth import decode_token
@@ -39,3 +41,35 @@ class ConnectionManager:
     def get_user_info(self, websocket: WebSocket):
         """Retrieve user information associated with the WebSocket."""
         return self.active_connections.get(websocket, None)
+
+
+class PrivateChatManager:
+    def __init__(self, connection_manager: ConnectionManager):
+        self.connection_manager = connection_manager
+        self.private_chats: Dict[str, List[WebSocket]] = {}
+
+    async def add_user_to_chat(self, chat_id: str, websocket: WebSocket):
+        if chat_id not in self.private_chats:
+            self.private_chats[chat_id] = []
+        self.private_chats[chat_id].append(websocket)
+
+    async def send_private_message(self, chat_id: str, message: str):
+        if chat_id in self.private_chats:
+            for connection in self.private_chats[chat_id]:
+                await connection.send_text(message)
+
+
+class GroupChatManager:
+    def __init__(self, connection_manager: ConnectionManager):
+        self.connection_manager = connection_manager
+        self.groups: Dict[str, List[WebSocket]] = {}
+
+    async def add_user_to_group(self, group_id: str, websocket: WebSocket):
+        if group_id not in self.groups:
+            self.groups[group_id] = []
+        self.groups[group_id].append(websocket)
+
+    async def send_group_message(self, group_id: str, message: str):
+        if group_id in self.groups:
+            for connection in self.groups[group_id]:
+                await connection.send_text(message)
