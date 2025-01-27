@@ -13,7 +13,7 @@ private_chat_manager = PrivateChatManager(connection_manager)
 group_chat_manager = GroupChatManager(connection_manager)
 
 
-async def handle_websocket_action(websocket: WebSocket, message: dict, db: Session = Depends(get_db)):
+async def handle_websocket_action(websocket: WebSocket, message: dict, db: Session):
     action = message.get("action")
     data = message.get("data", {})
     if action == "join_private_chat":
@@ -33,7 +33,7 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
 
 
 # Handlers for specific actions
-async def handle_join_private_chat(websocket: WebSocket, data: dict, db: Session = Depends(get_db)):
+async def handle_join_private_chat(websocket: WebSocket, data: dict, db: Session):
     user1 = data.get("user1")
     user1 = db.query(User).filter(
         User.username == user1["username"]
@@ -48,10 +48,12 @@ async def handle_join_private_chat(websocket: WebSocket, data: dict, db: Session
     chat = await private_chat_manager.get_or_create_chat(db, user1_id, user2_id)
     # Add the user to the chat's WebSocket connections
     await private_chat_manager.add_user_to_chat(chat.id, websocket)
-
     # Send chat history to the client
     messages = [
-        {"sender_id": message.sender_id, "content": message.content}
+        {"sender_username": db.query(User).filter(
+            User.id == message.sender_id
+        ).first().username,
+         "content": message.content}
         for message in chat.messages
     ]
     data_to_send = {"chat_id": chat.id, "history": messages}

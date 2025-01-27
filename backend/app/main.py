@@ -102,7 +102,7 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
 
 
 @app.post("/refresh")
-def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
+def refresh_token(request: Request, response: Response):
     # Extract refresh_token from cookies
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:

@@ -20,7 +20,6 @@ function Register() {
                 password,
             });
 
-            console.log("User registered successfully:", response.data);
             setSuccess(true); // Indicate successful registration
             setUsername("");
             setEmail("");

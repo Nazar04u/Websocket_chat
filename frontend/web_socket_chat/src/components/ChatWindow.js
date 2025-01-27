@@ -25,9 +25,6 @@ function ChatWindow({ currentUser, chatUser }) {
         const websocket = new WebSocket("ws://localhost:8008/ws");
     
         websocket.onopen = () => {
-            console.log("Port opened")
-            console.log(currentUser)
-            console.log(websocket.readyState)
             websocket.send(
                 JSON.stringify({
                     action: "join_private_chat",
@@ -39,7 +36,6 @@ function ChatWindow({ currentUser, chatUser }) {
                     csrf_token,
                 })
             );
-            console.log(123)
         };
     
         websocket.onmessage = (event) => {    
@@ -91,6 +87,7 @@ function ChatWindow({ currentUser, chatUser }) {
             );
             setNewMessage("");
         }
+        console.log(messages)
     };
     
 
@@ -100,7 +97,7 @@ function ChatWindow({ currentUser, chatUser }) {
             <div style={{ border: "1px solid black", padding: "10px", height: "300px", overflowY: "scroll" }}>
                 {messages.map((msg, index) => (
                     <div key={index}>
-                        <strong>{msg.sender}:</strong> {msg.content} {msg.timestamp}
+                        <strong>{msg.sender_username}:</strong> {msg.content} {msg.timestamp}
                     </div>
                 ))}
             </div>
