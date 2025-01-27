@@ -6,7 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
-from app.websocket.manager import ConnectionManager
+from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
 from app.models import User
 from app.database import (
     get_db,
@@ -46,15 +46,12 @@ app.add_middleware(
 )
 
 
-manager = ConnectionManager()
-
-
 @app.on_event("startup")
 async def startup_event():
     create_all_tables()
 
 
-@app.post("/register", response_model=UserResponse)
+@app.post("/register/", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -69,7 +66,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@app.post("/login")
+@app.post("/login/")
 def login(login_data: LoginRequest, response: Response, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == login_data.username).first()
 
@@ -98,7 +95,7 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
         content={
             "access_token": access_token,
             "refresh_token": refresh_token,
-            "csrf_token": csrf_token,  # Return CSRF token to the client
+            "csrf_token": csrf_token,
             "token_type": "bearer",
         }
     )
@@ -147,15 +144,29 @@ async def get_candidates(db: Session = Depends(get_db)):
 
 
 @app.websocket("/ws")
-async def initialize_connection(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket,  db: Session = Depends(get_db)):
     await websocket.accept()
-    # Receive initial message with tokens
-    data = await websocket.receive_text()
-    message = json.loads(data)
-    access_token = message.get("access_token")
-    csrf_token = message.get("csrf_token")
-    if not access_token or not csrf_token:
-        await websocket.close(code=1008, reason="Missing authentication tokens")
-        return
-    await manager.connect(websocket, csrf_token, access_token)
+    try:
+        # Initial connection authentication
+        data = await websocket.receive_text()
+        message = json.loads(data)
+        access_token = message.get("access_token")
+        csrf_token = message.get("csrf_token")
+        if not access_token or not csrf_token:
+            await websocket.close(code=1008, reason="Missing authentication tokens")
+            return
 
+        await connection_manager.connect(websocket, csrf_token, access_token)
+        await handle_websocket_action(websocket, message, db)
+        # Handle subsequent WebSocket messages
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            await handle_websocket_action(websocket, message, db)
+
+    except WebSocketDisconnect:
+        connection_manager.disconnect(websocket)
+        print("Client disconnected")
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        await websocket.close(code=1008, reason="Unexpected error")
