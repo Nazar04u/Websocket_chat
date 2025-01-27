@@ -31,45 +31,124 @@ function Register() {
     };
 
     return (
-        <div>
-            <h2>Register</h2>
-            <form onSubmit={handleFormSubmit}>
-                <div>
-                    <label>Username</label>
-                    <input
-                        type="text"
-                        placeholder="Enter your username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label>Email</label>
-                    <input
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                    />
-                </div>
-                <div>
-                    <label>Password</label>
-                    <input
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                    />
-                </div>
-                <button type="submit">Register</button>
-            </form>
-            {error && <div style={{ color: "red" }}>{error}</div>}
-            {success && <div style={{ color: "green" }}>Registration successful!</div>}
+        <div style={styles.container}>
+            <div style={styles.formContainer}>
+                <h2 style={styles.header}>Register</h2>
+                <form onSubmit={handleFormSubmit} style={styles.form}>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Username</label>
+                        <input
+                            type="text"
+                            placeholder="Enter your username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                            style={styles.input}
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Email</label>
+                        <input
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            style={styles.input}
+                        />
+                    </div>
+                    <div style={styles.formGroup}>
+                        <label style={styles.label}>Password</label>
+                        <input
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            style={styles.input}
+                        />
+                    </div>
+                    <button type="submit" style={styles.button}>Register</button>
+                </form>
+                {error && <div style={styles.error}>{error}</div>}
+                {success && <div style={styles.success}>Registration successful!</div>}
+            </div>
         </div>
     );
 }
+
+const styles = {
+    container: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        backgroundColor: "#f4f6f9",
+    },
+    formContainer: {
+        backgroundColor: "#fff",
+        padding: "30px",
+        borderRadius: "8px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        width: "100%",
+        maxWidth: "400px",
+        textAlign: "center",
+    },
+    header: {
+        fontSize: "24px",
+        color: "#333",
+        marginBottom: "20px",
+        fontWeight: "600",
+    },
+    form: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "15px",
+    },
+    formGroup: {
+        width: "100%",
+    },
+    label: {
+        fontSize: "14px",
+        color: "#333",
+        textAlign: "left",
+        marginBottom: "5px",
+        display: "block",
+    },
+    input: {
+        width: "100%",
+        padding: "12px",
+        fontSize: "16px",
+        borderRadius: "5px",
+        border: "1px solid #ddd",
+        boxSizing: "border-box",
+        marginBottom: "15px",
+    },
+    button: {
+        width: "100%",
+        padding: "12px",
+        fontSize: "16px",
+        backgroundColor: "#28a745",
+        color: "#fff",
+        border: "none",
+        borderRadius: "5px",
+        cursor: "pointer",
+        transition: "background-color 0.3s",
+    },
+    buttonHover: {
+        backgroundColor: "#218838",
+    },
+    error: {
+        color: "red",
+        fontSize: "14px",
+        marginTop: "10px",
+    },
+    success: {
+        color: "green",
+        fontSize: "14px",
+        marginTop: "10px",
+    },
+};
 
 export default Register;

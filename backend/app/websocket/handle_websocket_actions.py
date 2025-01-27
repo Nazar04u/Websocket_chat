@@ -53,7 +53,9 @@ async def handle_join_private_chat(websocket: WebSocket, data: dict, db: Session
         {"sender_username": db.query(User).filter(
             User.id == message.sender_id
         ).first().username,
-         "content": message.content}
+         "content": message.content,
+         "timestamp": message.timestamp.isoformat()
+        }
         for message in chat.messages
     ]
     data_to_send = {"chat_id": chat.id, "history": messages}

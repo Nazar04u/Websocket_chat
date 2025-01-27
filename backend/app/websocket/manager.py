@@ -1,5 +1,5 @@
 from typing import Dict, List
-
+from datetime import datetime
 from fastapi import WebSocket, HTTPException
 from sqlalchemy.orm import Session
 
@@ -46,6 +46,7 @@ class ConnectionManager:
     async def send_message_to_chat(self, chat_id: int, message: dict):
         """Send a message to all WebSocket connections in the specified chat."""
         if chat_id in self.active_connections:
+            message["timestamp"] = datetime.now().isoformat()
             connections = self.active_connections[chat_id]
             for websocket in connections:
                 await websocket.send_json(message)
@@ -75,6 +76,7 @@ class PrivateChatManager:
             chat_id=chat_id,
             sender_id=sender.id,
             content=message["content"],
+            timestamp=datetime.now()
         )
         db.add(private_message)
         db.commit()
