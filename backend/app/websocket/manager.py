@@ -15,7 +15,6 @@ class ConnectionManager:
         """Connect a WebSocket and associate it with a CSRF token and access token."""
         try:
             username = await verify_connection(websocket, access_token)
-
             if not username:
                 raise HTTPException(status_code=401, detail="Invalid access token")
             # Store the username and csrf_token with the WebSocket
@@ -30,7 +29,11 @@ class ConnectionManager:
 
     def disconnect(self, websocket: WebSocket):
         """Disconnect the WebSocket and remove it from active connections."""
-        self.active_connections.pop(websocket, None)
+        websocket_to_delete = websocket
+        self.active_connections.pop(websocket_to_delete, None)
+        for key, values in self.active_connections.items():
+            if isinstance(values, list) and websocket_to_delete in values:
+                values.remove(websocket_to_delete)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         """Send a personal message to a specific WebSocket."""
@@ -89,7 +92,6 @@ class PrivateChatManager:
             )
             .first()
         )
-
         if chat:
             return chat  # Return the existing chat
 

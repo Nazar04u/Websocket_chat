@@ -169,4 +169,5 @@ async def websocket_endpoint(websocket: WebSocket,  db: Session = Depends(get_db
         print("Client disconnected")
     except Exception as e:
         print(f"Error: {str(e)}")
+        connection_manager.disconnect(websocket)
         await websocket.close(code=1008, reason="Unexpected error")

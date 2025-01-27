@@ -18,6 +18,7 @@ function ChatWindow({ currentUser, chatUser }) {
     
         // Check if the WebSocket is already open (avoid opening a new connection)
         if (ws && ws.readyState === WebSocket.OPEN) {
+            console.log("Connection is already opened!")
             return;
         }
     
@@ -26,6 +27,7 @@ function ChatWindow({ currentUser, chatUser }) {
         websocket.onopen = () => {
             console.log("Port opened")
             console.log(currentUser)
+            console.log(websocket.readyState)
             websocket.send(
                 JSON.stringify({
                     action: "join_private_chat",
@@ -37,6 +39,7 @@ function ChatWindow({ currentUser, chatUser }) {
                     csrf_token,
                 })
             );
+            console.log(123)
         };
     
         websocket.onmessage = (event) => {    
@@ -97,7 +100,7 @@ function ChatWindow({ currentUser, chatUser }) {
             <div style={{ border: "1px solid black", padding: "10px", height: "300px", overflowY: "scroll" }}>
                 {messages.map((msg, index) => (
                     <div key={index}>
-                        <strong>{msg.sender}:</strong> {msg.content}
+                        <strong>{msg.sender}:</strong> {msg.content} {msg.timestamp}
                     </div>
                 ))}
             </div>
