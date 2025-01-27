@@ -32,8 +32,8 @@ function ChatWindow({ currentUser, chatUser }) {
                         user1: currentUser,
                         user2_id: chatUser.id,
                     },
-                    access_token,
-                    csrf_token,
+                    access_token: access_token,
+                    csrf_token: csrf_token,
                 })
             );
         };
