@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
 from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
-from app.models import User
+from app.models import User, GroupChat
 from app.database import (
     get_db,
     create_all_tables
@@ -23,7 +23,8 @@ from fastapi import (
 from app.schemas import (
     UserCreate,
     UserResponse,
-    LoginRequest
+    LoginRequest,
+    GroupChatResponse, GroupChatCreate
 )
 from app.auth import (
     create_access_token,
@@ -35,7 +36,6 @@ from app.auth import (
 from app.websocket.verify_websocket import verify_connection
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,8 +143,23 @@ async def get_candidates(db: Session = Depends(get_db)):
     return users
 
 
+@app.get("/groups/", response_model=list[GroupChatResponse])
+async def get_candidates(db: Session = Depends(get_db)):
+    group_chats = db.query(GroupChat).all()
+    return group_chats
+
+
+@app.post("/groups/create", response_model=GroupChat)
+async def create_group_chat(group_data: GroupChatCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    group_chat = GroupChat(name=group_data.group_name, admin_id=current_user.id)
+    db.add(group_chat)
+    db.commit()
+    db.refresh(group_chat)
+    return group_chat
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket,  db: Session = Depends(get_db)):
+async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket.accept()
     try:
         # Initial connection authentication

@@ -30,3 +30,11 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class GroupChatResponse(BaseModel):
+    name: str
+
+
+class GroupChatCreate(BaseModel):
+    group_name: str

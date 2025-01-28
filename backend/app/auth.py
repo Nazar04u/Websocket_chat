@@ -1,10 +1,12 @@
 import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from app.database import SessionLocal
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 import os
+
+from app.models import User
 
 load_dotenv()
 
@@ -15,6 +17,14 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Dependency to get the current user
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    user_id = decode_token(token)
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
 
 def hash_password(password: str) -> str:
