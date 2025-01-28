@@ -9,6 +9,7 @@ function GroupChatList({ currentUser, onSelectGroup }) {
 
     useEffect(() => {
         const access_token = Cookies.get("access_token");
+        const csrf_token = localStorage.getItem("csrf_token");
 
         // If no access token exists, redirect the user to login or show an error
         if (!access_token) {
@@ -21,6 +22,7 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             .get("http://localhost:8008/groups/", {
                 headers: {
                     "Authorization": `Bearer ${access_token}`,
+                    "X-CSRF-TOKEN": csrf_token, // Include CSRF token in the request headers
                 },
             })
             .then((response) => {
@@ -44,9 +46,15 @@ function GroupChatList({ currentUser, onSelectGroup }) {
 
     const createGroupChat = () => {
         const access_token = Cookies.get("access_token");
+        const csrf_token = localStorage.getItem("csrf_token");
 
         if (!access_token) {
             console.error("User is not authenticated. Please log in.");
+            return;
+        }
+
+        if (!csrf_token) {
+            console.error("CSRF token is missing. Ensure it is set.");
             return;
         }
 
@@ -73,13 +81,14 @@ function GroupChatList({ currentUser, onSelectGroup }) {
                     headers: {
                         "Authorization": `Bearer ${access_token}`,
                         "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": csrf_token, // Include CSRF token in the request headers
                     },
                 }
             )
             .then((response) => {
                 console.log("Group created successfully:", response.data);
                 setGroupChats((prev) => [...prev, response.data]); // Add new group to the state
-                setNewGroupName(response.data.group_name); // Clear the input field
+                setNewGroupName(""); // Clear the input field
             })
             .catch((error) => {
                 if (error.response) {
