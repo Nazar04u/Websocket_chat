@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
 from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
-from app.models import User
+from app.models import User, GroupChat
 from app.database import (
     get_db,
     create_all_tables
@@ -23,7 +23,7 @@ from fastapi import (
 from app.schemas import (
     UserCreate,
     UserResponse,
-    LoginRequest
+    LoginRequest, GroupChatResponse, GroupChatRequest
 )
 from app.auth import (
     create_access_token,
@@ -35,7 +35,6 @@ from app.auth import (
 from app.websocket.verify_websocket import verify_connection
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -143,8 +142,37 @@ async def get_candidates(db: Session = Depends(get_db)):
     return users
 
 
+@app.get("/groups/")
+async def get_groups(db: Session = Depends(get_db)):
+    groups = db.query(GroupChat).all()
+    # Properly create a list of dictionaries
+    group_list = [{"group_name": group.name} for group in groups]
+    return JSONResponse(content=group_list)
+
+
+@app.post('/group_create/')
+async def create_group(group_data: GroupChatRequest, db: Session = Depends(get_db)):
+    if db.query(GroupChat).filter(GroupChat.name == group_data.group_name).first():
+        raise HTTPException(status_code=400, detail="Group's name already exists")
+
+    admin = db.query(User).filter(
+        User.username == group_data.admin_username
+    ).first()
+    if not admin:
+        raise HTTPException(status_code=400, detail="User does not exist")
+    new_group = GroupChat(name=group_data.group_name, admin_id=admin.id, users=[], messages=[])
+    db.add(new_group)
+    db.commit()
+    db.refresh(new_group)
+    return JSONResponse({
+        "message": "Group is successfully created",
+        "group_name": new_group.name,
+        "admin_user": admin.username
+    })
+
+
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket,  db: Session = Depends(get_db)):
+async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket.accept()
     try:
         # Initial connection authentication

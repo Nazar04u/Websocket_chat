@@ -3,12 +3,14 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import UserList from "./components/UserList";
 import ChatWindow from "./components/ChatWindow";
+import GroupChatList from "./components/GroupChatList"; // Import the GroupChatList component
 
 function App() {
     const [currentPage, setCurrentPage] = useState("login"); // Default to "login"
     const [currentUser, setCurrentUser] = useState(null); // Current logged-in user
     const [chatUser, setChatUser] = useState(null); // User to chat with
     const [userList, setUserList] = useState([]); // List of all users
+    const [selectedGroup, setSelectedGroup] = useState(null); // Selected group chat
 
     useEffect(() => {
         if (currentPage === "websocket") {
@@ -24,6 +26,7 @@ function App() {
         setCurrentUser(null);
         setCurrentPage("login");
         setChatUser(null);
+        setSelectedGroup(null);
         // Optionally, clear cookies or tokens from storage
         localStorage.clear();
     };
@@ -58,6 +61,12 @@ function App() {
                         >
                             WebSocket
                         </button>
+                        <button
+                            onClick={() => setCurrentPage("groupChats")}
+                            style={styles.navButton}
+                        >
+                            Group Chats
+                        </button>
                         <button onClick={handleLogout} style={styles.navButton}>
                             Logout
                         </button>
@@ -79,6 +88,12 @@ function App() {
                             <ChatWindow currentUser={currentUser} chatUser={chatUser} />
                         )}
                     </div>
+                )}
+                {currentPage === "groupChats" && currentUser && (
+                    <GroupChatList
+                        currentUser={currentUser}
+                        onSelectGroup={setSelectedGroup} // Update selected group state
+                    />
                 )}
             </div>
         </div>

@@ -30,3 +30,15 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class GroupChatResponse(BaseModel):
+    group_name: str
+
+    class Config:
+        orm_mode = True  # Enables FastAPI to work with ORM models like SQLAlchemy
+
+
+class GroupChatRequest(BaseModel):
+    group_name: str
+    admin_username: str
