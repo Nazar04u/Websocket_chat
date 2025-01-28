@@ -35,7 +35,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             .catch((error) => {
                 console.error("Error fetching groups:", error.response || error.message);
             });
-
         // Cleanup WebSocket connection when the component unmounts
         return () => {
             if (websocket) {
@@ -102,7 +101,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
     const handleJoinGroup = (group) => {
         onSelectGroup(group); // Notify parent component about the selected group
         console.log(`Joined group: ${group.name}`);
-    };
 
     return (
         <div>
@@ -128,6 +126,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             </ul>
         </div>
     );
-}
+}}
 
 export default GroupChatList;

@@ -1,10 +1,12 @@
 import jwt
 from datetime import datetime, timedelta
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 from app.database import SessionLocal
 from passlib.context import CryptContext
 from dotenv import load_dotenv
 import os
+
+from app.models import User
 
 load_dotenv()
 

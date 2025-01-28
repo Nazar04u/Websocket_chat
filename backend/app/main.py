@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
 from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
-from app.models import User, GroupChat
+
 from app.database import (
     get_db,
     create_all_tables

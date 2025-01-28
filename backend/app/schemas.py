@@ -37,8 +37,3 @@ class GroupChatResponse(BaseModel):
 
     class Config:
         orm_mode = True  # Enables FastAPI to work with ORM models like SQLAlchemy
-
-
-class GroupChatRequest(BaseModel):
-    group_name: str
-    admin_username: str

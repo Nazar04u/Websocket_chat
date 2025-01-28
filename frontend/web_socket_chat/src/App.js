@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import UserList from "./components/UserList";
-import ChatWindow from "./components/ChatWindow";
+import GroupChatWindow from "./components/ChatWindow";
 import GroupChatList from "./components/GroupChatList"; // Import the GroupChatList component
 
 function App() {
@@ -14,7 +14,6 @@ function App() {
 
     useEffect(() => {
         if (currentPage === "websocket") {
-            // Fetch all users when on WebSocket page
             fetch("http://localhost:8008/users/") // Backend endpoint to fetch all users
                 .then((res) => res.json())
                 .then((data) => setUserList(data))
@@ -79,14 +78,31 @@ function App() {
                 {currentPage === "register" && <Register setCurrentUser={setCurrentUser} />}
                 {currentPage === "websocket" && currentUser && (
                     <div style={styles.websocketContainer}>
-                        <UserList
-                            users={userList}
-                            onMessageClick={setChatUser}
-                            currentUser={currentUser}
-                        />
-                        {chatUser && (
-                            <ChatWindow currentUser={currentUser} chatUser={chatUser} />
-                        )}
+                        <div style={styles.leftPanel}>
+                            <UserList
+                                users={userList}
+                                onMessageClick={setChatUser}
+                                currentUser={currentUser}
+                            />
+                            <GroupChatList
+                                currentUser={currentUser}
+                                onSelectGroup={setSelectedGroup}
+                            />
+                        </div>
+                        <div style={styles.rightPanel}>
+                            {chatUser ? (
+                                <GroupChatWindow currentUser={currentUser} chatUser={chatUser} />
+                            ) : selectedGroup ? (
+                                <GroupChatWindow
+                                    currentUser={currentUser}
+                                    group={selectedGroup}
+                                />
+                            ) : (
+                                <p style={styles.placeholder}>
+                                    Select a user or a group to start chatting.
+                                </p>
+                            )}
+                        </div>
                     </div>
                 )}
                 {currentPage === "groupChats" && currentUser && (
@@ -127,11 +143,6 @@ const styles = {
         fontSize: "16px",
         transition: "background-color 0.3s, transform 0.2s",
     },
-    navButtonHover: {
-        backgroundColor: "#0056b3",
-        color: "#fff",
-        transform: "scale(1.05)",
-    },
     pageContent: {
         marginTop: "30px",
         display: "flex",
@@ -143,7 +154,24 @@ const styles = {
         justifyContent: "space-between",
         alignItems: "flex-start",
         width: "100%",
-        maxWidth: "1000px",
+        maxWidth: "1200px",
+    },
+    leftPanel: {
+        flex: 1,
+        marginRight: "20px",
+    },
+    rightPanel: {
+        flex: 2,
+        backgroundColor: "#fff",
+        borderRadius: "6px",
+        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+        padding: "20px",
+        minHeight: "400px",
+    },
+    placeholder: {
+        textAlign: "center",
+        color: "#666",
+        marginTop: "20px",
     },
 };
 

@@ -1,10 +1,6 @@
-import json
-
-from fastapi import Depends
 from sqlalchemy.orm import Session
 from starlette.websockets import WebSocket
 
-from app.database import get_db
 from app.models import User, GroupChat
 from app.websocket.manager import PrivateChatManager, GroupChatManager, ConnectionManager
 
@@ -30,6 +26,8 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
         await handle_add_user_to_group_chat(websocket, data, db)
     elif action == "send_group_message":
         await handle_send_group_message(websocket, data)
+    elif action == "join_group_chat":
+        await handle_join_group_chat(websocket, data, db)
     else:
         await websocket.send_text("Unknown action")
 
@@ -77,6 +75,41 @@ async def handle_create_group_chat(websocket: WebSocket, data: dict, db: Session
         await websocket.send_text(f"Group chat '{group_name}' created successfully with ID: {group_chat.id}")
     except ValueError as e:
         await websocket.send_text(f"Error creating group chat: {str(e)}")
+
+
+async def handle_join_group_chat(websocket: WebSocket, data: dict, db: Session):
+    user_id = data.get("user_id")
+    group_id = data.get("group_id")
+
+    if not user_id or not group_id:
+        await websocket.send_text("Missing user_id or group_id for joining group chat")
+        return
+
+    # Fetch the group chat and check if the user is a member
+    group_chat = db.query(GroupChat).filter(GroupChat.id == group_id).first()
+    if not group_chat:
+        await websocket.send_text(f"Group chat with ID {group_id} does not exist.")
+        return
+
+    # Check if the user is part of the group
+    if not any(user.id == user_id for user in group_chat.users):
+        await websocket.send_text(f"User with ID {user_id} is not a member of the group.")
+        return
+
+    # Add the user to the group chat's WebSocket connections
+    await group_chat_manager.add_user_to_group(group_id, user_id, websocket, db)
+
+    # Retrieve the message history of the group chat
+    messages = [
+        {"sender_username": db.query(User).filter(User.id == message.sender_id).first().username,
+         "content": message.content,
+         "timestamp": message.timestamp.isoformat()}
+        for message in group_chat.messages
+    ]
+
+    # Send the message history to the user
+    data_to_send = {"group_id": group_id, "history": messages}
+    await websocket.send_json(data_to_send)
 
 
 async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Session):
