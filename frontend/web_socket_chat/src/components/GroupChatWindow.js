@@ -59,7 +59,7 @@ function GroupChatWindow({ currentUser, group }) {
                 JSON.stringify({
                     action: "send_group_message",
                     data: {
-                        group_id: group.id,
+                        group_id: group.group_name,
                         message: {
                             sender_username: currentUser.username,
                             content: newMessage,

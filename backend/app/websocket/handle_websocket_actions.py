@@ -28,7 +28,8 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
     elif action == "add_user_to_group_chat":
         await handle_add_user_to_group_chat(websocket, data, db)
     elif action == "send_group_message":
-        await handle_send_group_message(websocket, data)
+        print("Sending a group message")
+        await handle_send_group_message(websocket, data, db)
     elif action == "join_group_chat":
         print("Joining a group chat")
         await handle_join_group_chat(websocket, data, db)
@@ -153,13 +154,24 @@ async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Se
         await websocket.send_text(f"Error adding user to group chat: {str(e)}")
 
 
-async def handle_send_group_message(websocket: WebSocket, data: dict):
-    group_id = data.get("group_id")
+async def handle_send_group_message(websocket: WebSocket, data: dict, db: Session):
+    print("Start handling group message")
+    group_name = data.get("group_id")
     message = data.get("message")
+    sender_username = message.get("sender_username", None)
+    content = message.get("content", None)
+    print("Group_name:", group_name)
+    print("Message:", message)
+    print("Sender_username:", sender_username)
+    print("Content:", content)
+    group_id = db.query(GroupChat).filter(GroupChat.name == group_name).first().id
+    sender_id = db.query(User).filter(User.username == sender_username).first().id
+    print("Group_id:", group_id)
+    print("Sender_id:", sender_id)
     if not group_id or not message:
         await websocket.send_text("Missing group_id or message for group chat")
         return
-    await group_chat_manager.send_group_message(group_id, message)
+    await group_chat_manager.send_group_message(group_id, sender_id, content, db)
 
 
 async def notify_group_members(group_id: int, message: str):

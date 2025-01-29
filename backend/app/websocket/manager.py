@@ -166,6 +166,15 @@ class GroupChatManager:
             self.groups[group_id] = []
         self.groups[group_id].append(websocket)
 
+    async def send_message_to_chat(self, group_id: int, message: dict):
+        """Send a message to all WebSocket connections in the specified chat."""
+        if group_id in self.groups:
+            message["timestamp"] = datetime.now().isoformat()
+            connections = self.groups[group_id]
+            print(connections)
+            for websocket in connections:
+                await websocket.send_json(message)
+
     async def send_group_message(self, group_id: int, sender_id: int, message_text: str, db: Session):
         """Send a message to a group chat, store it in the database, and broadcast it to group members."""
         # Fetch the group chat from the database
@@ -202,7 +211,10 @@ class GroupChatManager:
             "content": message_text,
             "timestamp": new_message.timestamp.isoformat()
         }
+        print(message_payload)
 
         # Broadcast the message to all WebSocket connections in the group
-        await self.connection_manager.send_message_to_chat(group_id, message_payload)
-
+        await self.send_message_to_chat(group_id, {
+            "sender_username": sender.username,
+            "content": message_text
+        })
