@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import UserList from "./components/UserList";
-import GroupChatWindow from "./components/ChatWindow";
+import ChatWindow from "./components/ChatWindow";
+import GroupChatWindow from "./components/GroupChatWindow";
 import GroupChatList from "./components/GroupChatList"; // Import the GroupChatList component
 
 function App() {
@@ -31,7 +32,13 @@ function App() {
     };
 
     const handleMessageClick = (user) => {
-        setChatUser(user); // Open chat with the selected user
+        setChatUser(user); // Open private chat
+        setSelectedGroup(null); // Ensure group chat is reset
+    };
+
+    const handleSelectGroup = (group) => {
+        setSelectedGroup(group); // Open group chat
+        setChatUser(null); // Ensure private chat is reset
     };
 
     return (
@@ -81,17 +88,17 @@ function App() {
                         <div style={styles.leftPanel}>
                             <UserList
                                 users={userList}
-                                onMessageClick={setChatUser}
+                                onMessageClick={handleMessageClick}
                                 currentUser={currentUser}
                             />
                             <GroupChatList
                                 currentUser={currentUser}
-                                onSelectGroup={setSelectedGroup}
+                                onSelectGroup={handleSelectGroup}
                             />
                         </div>
                         <div style={styles.rightPanel}>
                             {chatUser ? (
-                                <GroupChatWindow currentUser={currentUser} chatUser={chatUser} />
+                                <ChatWindow currentUser={currentUser} chatUser={chatUser} />
                             ) : selectedGroup ? (
                                 <GroupChatWindow
                                     currentUser={currentUser}
@@ -108,7 +115,7 @@ function App() {
                 {currentPage === "groupChats" && currentUser && (
                     <GroupChatList
                         currentUser={currentUser}
-                        onSelectGroup={setSelectedGroup} // Update selected group state
+                        onSelectGroup={handleSelectGroup} // Update selected group state
                     />
                 )}
             </div>
@@ -170,7 +177,7 @@ const styles = {
     },
     placeholder: {
         textAlign: "center",
-        color: "#666",
+        color: "#667",
         marginTop: "20px",
     },
 };
