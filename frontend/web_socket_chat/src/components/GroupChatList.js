@@ -3,31 +3,31 @@ import Cookies from "js-cookie";
 import axios from "axios";
 
 function GroupChatList({ currentUser, onSelectGroup }) {
-    const [groupChats, setGroupChats] = useState([]); // Initial state is an empty array
-    const [newGroupName, setNewGroupName] = useState(""); // State for new group name
-    const [websocket, setWebsocket] = useState(null);
+    const [groupChats, setGroupChats] = useState([]); // Store fetched groups
+    const [newGroupName, setNewGroupName] = useState(""); // Store new group name
 
     useEffect(() => {
+        if (!currentUser) return; // Avoid fetching if no user
+
         const access_token = Cookies.get("access_token");
         const csrf_token = localStorage.getItem("csrf_token");
 
-        // If no access token exists, redirect the user to login or show an error
         if (!access_token) {
             console.error("User is not authenticated. Please log in.");
             return;
         }
 
-        // Fetch all group chats from the backend
+        // Fetch all group chats
         axios
             .get("http://localhost:8008/groups/", {
                 headers: {
-                    "Authorization": `Bearer ${access_token}`,
-                    "X-CSRF-TOKEN": csrf_token, // Include CSRF token in the request headers
+                    Authorization: `Bearer ${access_token}`,
+                    "X-CSRF-TOKEN": csrf_token,
                 },
             })
             .then((response) => {
                 if (Array.isArray(response.data)) {
-                    setGroupChats(response.data);
+                    setGroupChats(response.data); // Update state with fetched groups
                 } else {
                     console.error("Unexpected response format:", response.data);
                 }
@@ -35,14 +35,13 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             .catch((error) => {
                 console.error("Error fetching groups:", error.response || error.message);
             });
-        // Cleanup WebSocket connection when the component unmounts
-        return () => {
-            if (websocket) {
-                websocket.close();
-            }
-        };
-    }, []);
+    }, [currentUser]); // Fetch groups when currentUser changes
 
+    // Log updates to groupChats
+    useEffect(() => {
+    }, [groupChats]);
+
+    // Create a new group
     const createGroupChat = () => {
         const access_token = Cookies.get("access_token");
         const csrf_token = localStorage.getItem("csrf_token");
@@ -57,13 +56,12 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             return;
         }
 
-        if (!newGroupName) {
+        if (!newGroupName.trim()) {
             console.error("Group name cannot be empty.");
             return;
         }
 
-        const adminUsername = currentUser?.username; // Get admin's username from props or state
-
+        const adminUsername = currentUser?.username; // Get admin's username
         if (!adminUsername) {
             console.error("Admin username is required.");
             return;
@@ -72,39 +70,35 @@ function GroupChatList({ currentUser, onSelectGroup }) {
         axios
             .post(
                 "http://localhost:8008/group_create/",
-                {
-                    group_name: newGroupName,
-                    admin_username: adminUsername,
-                },
+                { group_name: newGroupName, admin_username: adminUsername },
                 {
                     headers: {
-                        "Authorization": `Bearer ${access_token}`,
+                        Authorization: `Bearer ${access_token}`,
                         "Content-Type": "application/json",
-                        "X-CSRF-TOKEN": csrf_token, // Include CSRF token in the request headers
+                        "X-CSRF-TOKEN": csrf_token,
                     },
                 }
             )
             .then((response) => {
                 console.log("Group created successfully:", response.data);
-                setGroupChats((prev) => [...prev, response.data]); // Add new group to the state
-                setNewGroupName(""); // Clear the input field
+                setGroupChats((prev) => [...prev, response.data]); // Add new group to list
+                setNewGroupName(""); // Clear input field
             })
             .catch((error) => {
-                if (error.response) {
-                    console.error("Error creating group:", error.response.data.detail);
-                } else {
-                    console.error("Error:", error.message);
-                }
+                console.error("Error creating group:", error.response?.data?.detail || error.message);
             });
     };
 
+    // Select a group to join
     const handleJoinGroup = (group) => {
-        onSelectGroup(group); // Notify parent component about the selected group
-        console.log(`Joined group: ${group.name}`);
+        onSelectGroup(group);
+    };
 
     return (
         <div>
             <h2>Group Chats</h2>
+
+            {/* Create New Group */}
             <input
                 type="text"
                 value={newGroupName}
@@ -112,6 +106,8 @@ function GroupChatList({ currentUser, onSelectGroup }) {
                 placeholder="Enter group name"
             />
             <button onClick={createGroupChat}>Create Group</button>
+
+            {/* Display Groups */}
             <ul>
                 {groupChats.length > 0 ? (
                     groupChats.map((group) => (
@@ -121,11 +117,11 @@ function GroupChatList({ currentUser, onSelectGroup }) {
                         </li>
                     ))
                 ) : (
-                    <p>No groups available. Please create one!</p>
+                    <p>Loading groups or no groups available. Please create one!</p>
                 )}
             </ul>
         </div>
     );
-}}
+}
 
 export default GroupChatList;

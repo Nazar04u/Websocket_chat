@@ -6,6 +6,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
 
+from app.models import GroupChat, User
 from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
 
 from app.database import (
@@ -32,7 +33,6 @@ from app.auth import (
     verify_password,
     create_refresh_token
 )
-from app.websocket.verify_websocket import verify_connection
 
 app = FastAPI()
 
