@@ -10,8 +10,11 @@ group_chat_manager = GroupChatManager(connection_manager)
 
 
 async def handle_websocket_action(websocket: WebSocket, message: dict, db: Session):
+    print("Start handling")
     action = message.get("action")
     data = message.get("data", {})
+    print("Action:", action)
+    print("Data:", data)
     if action == "join_private_chat":
         await handle_join_private_chat(websocket, data, db)
     elif action == "send_private_message":
@@ -27,6 +30,7 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
     elif action == "send_group_message":
         await handle_send_group_message(websocket, data)
     elif action == "join_group_chat":
+        print("Joining a group chat")
         await handle_join_group_chat(websocket, data, db)
     else:
         await websocket.send_text("Unknown action")
@@ -78,9 +82,15 @@ async def handle_create_group_chat(websocket: WebSocket, data: dict, db: Session
 
 
 async def handle_join_group_chat(websocket: WebSocket, data: dict, db: Session):
-    user_id = data.get("user_id")
-    group_id = data.get("group_id")
-
+    print("start handling join_group_chat")
+    user_name = data.get("user_name")
+    group_name = data.get("group_name")
+    print("User_name:", user_name)
+    print("Group_name:", group_name)
+    user_id = db.query(User).filter(User.username == user_name).first().id
+    group_id = db.query(GroupChat).filter(GroupChat.name == group_name).first().id
+    print("User_id:", user_id)
+    print("Group_id:", group_id)
     if not user_id or not group_id:
         await websocket.send_text("Missing user_id or group_id for joining group chat")
         return
@@ -92,10 +102,10 @@ async def handle_join_group_chat(websocket: WebSocket, data: dict, db: Session):
         return
 
     # Check if the user is part of the group
-    if not any(user.id == user_id for user in group_chat.users):
-        await websocket.send_text(f"User with ID {user_id} is not a member of the group.")
+    if not any(user.id == user_id for user in group_chat.users) and user_id != group_chat.admin_id:
+        await websocket.send_json({"content": f"User with ID {user_id} is not a member of the group."})
         return
-
+    print("User or Admin")
     # Add the user to the group chat's WebSocket connections
     await group_chat_manager.add_user_to_group(group_id, user_id, websocket, db)
 
@@ -109,6 +119,7 @@ async def handle_join_group_chat(websocket: WebSocket, data: dict, db: Session):
 
     # Send the message history to the user
     data_to_send = {"group_id": group_id, "history": messages}
+    print(data_to_send)
     await websocket.send_json(data_to_send)
 
 

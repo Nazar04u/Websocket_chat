@@ -18,11 +18,14 @@ function GroupChatWindow({ currentUser, group }) {
         const websocket = new WebSocket("ws://localhost:8008/ws");
 
         websocket.onopen = () => {
+            console.log(group)
+            console.log(currentUser)
             websocket.send(
                 JSON.stringify({
                     action: "join_group_chat",
                     data: {
-                        group_id: group.id,
+                        group_name: group.group_name,
+                        user_name: currentUser.username
                     },
                     access_token,
                     csrf_token,

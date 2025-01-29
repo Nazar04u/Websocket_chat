@@ -153,16 +153,13 @@ class GroupChatManager:
             raise ValueError(f"User with id {user_id} does not exist.")
 
         # Check if the user is already a member of the group
-        if user in group_chat.users:
-            raise ValueError(f"User with id {user_id} is already a member of the group.")
-
-        # Add the user to the group's users in the database
-        try:
-            group_chat.users.append(user)
-            db.commit()
-        except IntegrityError:
-            db.rollback()
-            raise ValueError(f"Failed to add user {user_id} to group {group_id} due to a database error.")
+        if user not in group_chat.users:
+            try:
+                group_chat.users.append(user)
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                raise ValueError(f"Failed to add user {user_id} to group {group_id} due to a database error.")
 
         # Add the user's WebSocket connection to the in-memory group structure
         if group_id not in self.groups:

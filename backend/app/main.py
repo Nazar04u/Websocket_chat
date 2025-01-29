@@ -180,6 +180,7 @@ async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)
         message = json.loads(data)
         access_token = message.get("access_token")
         csrf_token = message.get("csrf_token")
+        print(message)
         if not access_token or not csrf_token:
             await websocket.close(code=1008, reason="Missing authentication tokens")
             return
