@@ -164,7 +164,8 @@ class GroupChatManager:
         # Add the user's WebSocket connection to the in-memory group structure
         if group_id not in self.groups:
             self.groups[group_id] = []
-        self.groups[group_id].append(websocket)
+        if websocket not in self.groups[group_id]:
+            self.groups[group_id].append(websocket)
 
     async def send_message_to_chat(self, group_id: int, message: dict):
         """Send a message to all WebSocket connections in the specified chat."""

@@ -120,13 +120,15 @@ function GroupChatWindow({ currentUser, group }) {
 
     const addUserToGroup = (userId) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
+            console.log(currentUser)
+            console.log(group)
             ws.send(
                 JSON.stringify({
                     action: "add_user_to_group_chat",
                     data: {
-                        group_id: group.id,
+                        group_name: group.group_name,
                         user_id: userId,
-                        adder_id: currentUser.id,
+                        adder_name: currentUser.username,
                     },
                 })
             );
