@@ -141,7 +141,7 @@ async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Se
             raise ValueError("Group chat does not exist")
 
         # Check if the adder is part of the group
-        if not any(user.id == adder_id for user in group_chat.users):
+        if not any(user.id == adder_id for user in group_chat.users) or adder_id != group_chat.admin_id:
             raise ValueError("You are not a member of this group. Cannot add users.")
 
         # Add the user to the group

@@ -171,6 +171,26 @@ async def create_group(group_data: GroupChatRequest, db: Session = Depends(get_d
     })
 
 
+@app.get("/all_user")
+async def get_group_members(db: Session = Depends(get_db)):
+    """Fetch all users who are members of the given group."""
+    users = db.query(User).all()
+
+    users = [{"id": user.id, "username": user.username} for user in users]
+    return {"users": users}
+
+
+@app.get("/group/{group_name}/members")
+async def get_group_members(group_name: str, db: Session = Depends(get_db)):
+    """Fetch all users who are members of the given group."""
+    group = db.query(GroupChat).filter(GroupChat.name == group_name).first()
+    if not group:
+        return {"error": "Group not found"}
+
+    members = [{"id": user.id, "username": user.username} for user in group.users]
+    return {"group_name": group_name, "members": members}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket.accept()
