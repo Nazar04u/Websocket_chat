@@ -13,7 +13,8 @@ function GroupChatWindow({ currentUser, group }) {
     useEffect(() => {
         fetchAllUsers();
         fetchGroupMembers();
-    }, [group.id]);
+        console.log(group);
+    }, [group.group_name]);
 
     const fetchAllUsers = async () => {
         try {
@@ -31,6 +32,7 @@ function GroupChatWindow({ currentUser, group }) {
         try {
             const response = await fetch(`http://localhost:8008/group/${group.group_name}/members`);
             const data = await response.json();
+            console.log("Data:", data)
             if (data.members) {
                 setGroupMembers(data.members);
                 filterAvailableUsers(data.members);
@@ -52,16 +54,19 @@ function GroupChatWindow({ currentUser, group }) {
     }, [allUsers, groupMembers]);
 
     useEffect(() => {
+        setMessages([]); // Reset messages when switching groups
+        fetchGroupMembers();
+        console.log("Messages:", messages)
         const access_token = Cookies.get("access_token");
         const csrf_token = localStorage.getItem("csrf_token");
-
+    
         if (!access_token || !csrf_token) {
             console.error("Authentication tokens are missing!");
             return;
         }
-
+    
         const websocket = new WebSocket("ws://localhost:8008/ws");
-
+    
         websocket.onopen = () => {
             websocket.send(
                 JSON.stringify({
@@ -75,26 +80,27 @@ function GroupChatWindow({ currentUser, group }) {
                 })
             );
         };
-
+    
         websocket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
                 if (message.history) {
-                    setMessages(message.history);
+                    setMessages(message.history); // Update history when new group is selected
                 } else {
-                    setMessages((prev) => [...prev, message]);
+                    setMessages((prev) => [...prev, message]); // Append new messages
                 }
             } catch (e) {
                 console.error("Failed to parse WebSocket message", e);
             }
         };
-
+    
         setWs(websocket);
-
+    
         return () => {
             websocket.close();
         };
-    }, [group.id]);
+    }, [group.group_name]); // Depend on group.id to re-run the effect when the group changes
+    
 
     const sendMessage = () => {
         if (ws && ws.readyState === WebSocket.OPEN) {

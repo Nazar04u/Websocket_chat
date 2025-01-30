@@ -3,11 +3,11 @@ import Cookies from "js-cookie";
 import axios from "axios";
 
 function GroupChatList({ currentUser, onSelectGroup }) {
-    const [groupChats, setGroupChats] = useState([]); // Store fetched groups
-    const [newGroupName, setNewGroupName] = useState(""); // Store new group name
+    const [groupChats, setGroupChats] = useState([]);
+    const [newGroupName, setNewGroupName] = useState("");
 
     useEffect(() => {
-        if (!currentUser) return; // Avoid fetching if no user
+        if (!currentUser) return;
 
         const access_token = Cookies.get("access_token");
         const csrf_token = localStorage.getItem("csrf_token");
@@ -17,7 +17,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             return;
         }
 
-        // Fetch all group chats
         axios
             .get("http://localhost:8008/groups/", {
                 headers: {
@@ -27,7 +26,7 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             })
             .then((response) => {
                 if (Array.isArray(response.data)) {
-                    setGroupChats(response.data); // Update state with fetched groups
+                    setGroupChats(response.data);
                 } else {
                     console.error("Unexpected response format:", response.data);
                 }
@@ -35,13 +34,12 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             .catch((error) => {
                 console.error("Error fetching groups:", error.response || error.message);
             });
-    }, [currentUser]); // Fetch groups when currentUser changes
+    }, [currentUser]);
 
-    // Log updates to groupChats
     useEffect(() => {
+        console.log("Updated group chats:", groupChats);
     }, [groupChats]);
 
-    // Create a new group
     const createGroupChat = () => {
         const access_token = Cookies.get("access_token");
         const csrf_token = localStorage.getItem("csrf_token");
@@ -61,7 +59,7 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             return;
         }
 
-        const adminUsername = currentUser?.username; // Get admin's username
+        const adminUsername = currentUser?.username;
         if (!adminUsername) {
             console.error("Admin username is required.");
             return;
@@ -81,16 +79,20 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             )
             .then((response) => {
                 console.log("Group created successfully:", response.data);
-                setGroupChats((prev) => [...prev, response.data]); // Add new group to list
-                setNewGroupName(""); // Clear input field
+                setGroupChats((prev) => [...prev, response.data]);
+                setNewGroupName("");
             })
             .catch((error) => {
                 console.error("Error creating group:", error.response?.data?.detail || error.message);
             });
     };
 
-    // Select a group to join
     const handleJoinGroup = (group) => {
+        console.log("Join button clicked for:", group);
+        if (typeof onSelectGroup !== "function") {
+            console.error("onSelectGroup is not a function or is undefined.");
+            return;
+        }
         onSelectGroup(group);
     };
 
@@ -98,7 +100,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
         <div>
             <h2>Group Chats</h2>
 
-            {/* Create New Group */}
             <input
                 type="text"
                 value={newGroupName}
@@ -107,11 +108,10 @@ function GroupChatList({ currentUser, onSelectGroup }) {
             />
             <button onClick={createGroupChat}>Create Group</button>
 
-            {/* Display Groups */}
             <ul>
                 {groupChats.length > 0 ? (
                     groupChats.map((group) => (
-                        <li key={group.group_name}>
+                        <li key={group.id || group.group_name}>
                             {group.group_name}{" "}
                             <button onClick={() => handleJoinGroup(group)}>Join</button>
                         </li>
