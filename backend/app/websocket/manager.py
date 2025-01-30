@@ -37,6 +37,7 @@ class ConnectionManager:
         for key, values in self.active_connections.items():
             if isinstance(values, list) and websocket_to_delete in values:
                 values.remove(websocket_to_delete)
+        print("Connection after deletion:", self.active_connections)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         """Send a personal message to a specific WebSocket."""
@@ -135,7 +136,6 @@ class PrivateChatManager:
 class GroupChatManager:
     def __init__(self, connection_manager: ConnectionManager):
         self.connection_manager = connection_manager
-        self.groups: Dict[int, List[WebSocket]] = {}
 
     async def get_or_create_group_chat(self, admin_id: int, name: str, db: Session):
         # Validate input
@@ -188,19 +188,7 @@ class GroupChatManager:
                 raise ValueError(f"Failed to add user {user_id} to group {group_id} due to a database error.")
 
         # Add the user's WebSocket connection to the in-memory group structure
-        if group_id not in self.groups:
-            self.groups[group_id] = []
-        if websocket not in self.groups[group_id]:
-            self.groups[group_id].append(websocket)
-
-    async def send_message_to_chat(self, group_id: int, message: dict):
-        """Send a message to all WebSocket connections in the specified chat."""
-        if group_id in self.groups:
-            message["timestamp"] = datetime.now().isoformat()
-            connections = self.groups[group_id]
-            print(connections)
-            for websocket in connections:
-                await websocket.send_json(message)
+        await self.connection_manager.add_user_to_chat(group_id, "group", websocket)
 
     async def send_group_message(self, group_id: int, sender_id: int, message_text: str, db: Session):
         """Send a message to a group chat, store it in the database, and broadcast it to group members."""
@@ -241,7 +229,7 @@ class GroupChatManager:
         print(message_payload)
 
         # Broadcast the message to all WebSocket connections in the group
-        await self.send_message_to_chat(group_id, {
+        await self.connection_manager.send_message_to_chat(group_id, "group", {
             "sender_username": sender.username,
             "content": message_text
         })
