@@ -158,8 +158,9 @@ async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Se
         print([i.id for i in group_chat.users])
         if not any(user.id == adder_id for user in group_chat.users) and adder_id != group_chat.admin_id:
             print("Adder is not in group")
-            raise ValueError("You are not a member of this group. Cannot add users.")
-
+            await websocket.send_json({"content": "User is not in the group. You can not add another user to this group"})
+            return
+            
         # Add the user to the group
         await group_chat_manager.add_user_to_group(group_id, user_id, "adding", websocket, db)
         print("Added successfully")
