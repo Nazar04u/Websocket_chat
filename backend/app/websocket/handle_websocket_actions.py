@@ -18,6 +18,8 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
     if action == "join_private_chat":
         await handle_join_private_chat(websocket, data, db)
     elif action == "send_private_message":
+        print("Handling sending a private message")
+        print("Data:", data)
         chat_id = data.get("chat_id")
         message_data = data.get("message")
         if not chat_id or not message_data:

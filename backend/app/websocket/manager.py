@@ -31,6 +31,8 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         """Disconnect the WebSocket and remove it from active connections."""
         websocket_to_delete = websocket
+        print("Websocket_to_delete:", websocket)
+        print("Connections:", self.active_connections)
         self.active_connections.pop(websocket_to_delete, None)
         for key, values in self.active_connections.items():
             if isinstance(values, list) and websocket_to_delete in values:
@@ -44,19 +46,43 @@ class ConnectionManager:
         """Retrieve user information associated with the WebSocket."""
         return self.active_connections.get(websocket, None)
 
-    async def send_message_to_chat(self, chat_id: int, message: dict):
+    async def send_message_to_chat(self, chat_id: int, type_of_connection: str, message: dict):
         """Send a message to all WebSocket connections in the specified chat."""
-        if chat_id in self.active_connections:
-            message["timestamp"] = datetime.now().isoformat()
-            connections = self.active_connections[chat_id]
-            for websocket in connections:
-                await websocket.send_json(message)
+        print("Sending message to chat")
+        print("Connections_sending", self.active_connections)
+        if type_of_connection == "private":
+            print(0)
+            if f"private_{chat_id}" in self.active_connections:
+                message["timestamp"] = datetime.now().isoformat()
+                connections = self.active_connections[f"private_{chat_id}"]
+                print(connections)
+                for websocket in connections:
+                    await websocket.send_json(message)
+        if type_of_connection == "group":
+            print(1)
+            if f"group_{chat_id}" in self.active_connections:
+                message["timestamp"] = datetime.now().isoformat()
+                connections = self.active_connections[f"group_{chat_id}"]
+                for websocket in connections:
+                    await websocket.send_json(message)
 
-    async def add_user_to_chat(self, chat_id: int, websocket: WebSocket):
+    async def add_user_to_chat(self, chat_id: int, type_of_connection: str, websocket: WebSocket):
         """Add a WebSocket connection to a specific chat."""
-        if chat_id not in self.active_connections:
-            self.active_connections[chat_id] = []
-        self.active_connections[chat_id].append(websocket)
+        print("Adding to chat")
+        print("Connections:", self.active_connections)
+        if type_of_connection == "private":
+            print(0)
+            chat_code = f"private_{chat_id}"
+            if chat_code not in self.active_connections:
+                self.active_connections[chat_code] = []
+            self.active_connections[chat_code].append(websocket)
+        if type_of_connection == "group":
+            print(1)
+            chat_code = f"group_{chat_id}"
+            if chat_code not in self.active_connections:
+                self.active_connections[chat_code] = []
+            self.active_connections[chat_code].append(websocket)
+        print("Updated connections:", self.active_connections)
 
 
 class PrivateChatManager:
@@ -66,7 +92,7 @@ class PrivateChatManager:
 
     async def add_user_to_chat(self, chat_id: int, websocket):
         # Manage adding users to a specific chat (e.g., WebSocket connections)
-        await self.connection_manager.add_user_to_chat(chat_id, websocket)
+        await self.connection_manager.add_user_to_chat(chat_id, "private", websocket)
 
     async def send_private_message(self, db: Session, chat_id: int, message: dict):
         # Save the message in the database
@@ -83,7 +109,7 @@ class PrivateChatManager:
         db.commit()
         db.refresh(private_message)
         # Forward the message to connected users
-        await self.connection_manager.send_message_to_chat(chat_id, message)
+        await self.connection_manager.send_message_to_chat(chat_id, "private", message)
 
     async def get_or_create_chat(self, db: Session, user1_id: int, user2_id: int):
         # Filter existing private chats

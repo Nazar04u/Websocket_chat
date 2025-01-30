@@ -15,7 +15,6 @@ function GroupChatWindow({ currentUser, group }) {
         fetchGroupMembers();
     }, [group.id]);
 
-    // Fetch all users
     const fetchAllUsers = async () => {
         try {
             const response = await fetch("http://localhost:8008/all_user");
@@ -28,7 +27,6 @@ function GroupChatWindow({ currentUser, group }) {
         }
     };
 
-    // Fetch current group members
     const fetchGroupMembers = async () => {
         try {
             const response = await fetch(`http://localhost:8008/group/${group.group_name}/members`);
@@ -42,7 +40,6 @@ function GroupChatWindow({ currentUser, group }) {
         }
     };
 
-    // Filter users who are not in the group
     const filterAvailableUsers = (members) => {
         if (!allUsers.length) return;
         const groupUserIds = members.map(user => user.id);
@@ -50,7 +47,6 @@ function GroupChatWindow({ currentUser, group }) {
         setAvailableUsers(nonGroupUsers);
     };
 
-    // Recalculate available users when allUsers updates
     useEffect(() => {
         filterAvailableUsers(groupMembers);
     }, [allUsers, groupMembers]);
@@ -120,8 +116,6 @@ function GroupChatWindow({ currentUser, group }) {
 
     const addUserToGroup = (userId) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            console.log(currentUser)
-            console.log(group)
             ws.send(
                 JSON.stringify({
                     action: "add_user_to_group_chat",
@@ -133,7 +127,6 @@ function GroupChatWindow({ currentUser, group }) {
                 })
             );
 
-            // Optimistically update UI
             const addedUser = allUsers.find(user => user.id === userId);
             if (addedUser) {
                 setGroupMembers([...groupMembers, addedUser]);
@@ -197,27 +190,31 @@ const styles = {
         width: "100%",
         maxWidth: "600px",
         height: "500px",
-        borderRadius: "8px",
+        borderRadius: "12px",
         backgroundColor: "#f8f9fa",
-        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-        padding: "10px",
+        boxShadow: "0 6px 12px rgba(0, 0, 0, 0.2)",
+        padding: "15px",
     },
     groupTitle: {
         textAlign: "center",
-        marginBottom: "10px",
-        fontSize: "20px",
+        marginBottom: "15px",
+        fontSize: "22px",
         fontWeight: "bold",
-        color: "#007bff",
+        color: "#0056b3",
     },
     addUserButton: {
         alignSelf: "center",
         backgroundColor: "#28a745",
         color: "white",
-        padding: "8px 12px",
+        padding: "10px 15px",
         border: "none",
-        borderRadius: "6px",
+        borderRadius: "8px",
         cursor: "pointer",
-        marginBottom: "10px",
+        transition: "0.3s",
+        fontSize: "14px",
+    },
+    addUserButtonHover: {
+        backgroundColor: "#218838",
     },
     userListContainer: {
         backgroundColor: "#fff",
@@ -225,23 +222,27 @@ const styles = {
         borderRadius: "8px",
         padding: "10px",
         marginBottom: "10px",
-        maxHeight: "150px",
+        maxHeight: "180px",
         overflowY: "auto",
     },
     userItem: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "5px 10px",
+        padding: "8px 12px",
         borderBottom: "1px solid #ddd",
     },
     addButton: {
         backgroundColor: "#007bff",
         color: "white",
-        padding: "5px 10px",
+        padding: "6px 12px",
         border: "none",
-        borderRadius: "4px",
+        borderRadius: "6px",
         cursor: "pointer",
+        transition: "0.3s",
+    },
+    addButtonHover: {
+        backgroundColor: "#0056b3",
     },
     noUsersText: {
         textAlign: "center",
@@ -251,46 +252,23 @@ const styles = {
         flex: 1,
         overflowY: "auto",
         padding: "10px",
-        display: "flex",
-        flexDirection: "column",
     },
     myMessage: {
         alignSelf: "flex-end",
         backgroundColor: "#007bff",
         color: "#fff",
-        padding: "8px",
-        borderRadius: "12px",
+        padding: "10px",
+        borderRadius: "14px",
         maxWidth: "70%",
-        marginBottom: "5px",
+        marginBottom: "6px",
     },
     otherMessage: {
         alignSelf: "flex-start",
         backgroundColor: "#e0e0e0",
-        color: "#000",
-        padding: "8px",
-        borderRadius: "12px",
-        maxWidth: "70%",
-        marginBottom: "5px",
-    },
-    inputContainer: {
-        display: "flex",
-        alignItems: "center",
         padding: "10px",
-        borderTop: "1px solid #ddd",
-    },
-    inputField: {
-        flex: 1,
-        padding: "8px",
-        borderRadius: "6px",
-        border: "1px solid #ccc",
-    },
-    sendButton: {
-        marginLeft: "10px",
-        padding: "8px 16px",
-        backgroundColor: "#007bff",
-        color: "#fff",
-        border: "none",
-        borderRadius: "6px",
+        borderRadius: "14px",
+        maxWidth: "70%",
+        marginBottom: "6px",
     },
 };
 
