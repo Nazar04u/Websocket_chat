@@ -84,6 +84,7 @@ function GroupChatWindow({ currentUser, group }) {
         websocket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
+                console.log(event.data);
                 if (message.history) {
                     setMessages(message.history); // Update history when new group is selected
                 } else {

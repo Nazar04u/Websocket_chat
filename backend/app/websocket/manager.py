@@ -16,6 +16,7 @@ class ConnectionManager:
         """Connect a WebSocket and associate it with a CSRF token and access token."""
         try:
             username = await verify_connection(websocket, access_token)
+            print("Username:", username)
             if not username:
                 raise HTTPException(status_code=401, detail="Invalid access token")
             # Store the username and csrf_token with the WebSocket
@@ -65,6 +66,7 @@ class ConnectionManager:
                 message["timestamp"] = datetime.now().isoformat()
                 connections = self.active_connections[f"group_{chat_id}"]
                 for websocket in connections:
+                    print(f"Websocket: {websocket} sends a message: {message}")
                     await websocket.send_json(message)
 
     async def add_user_to_chat(self, chat_id: int, type_of_connection: str, websocket: WebSocket):
@@ -166,21 +168,24 @@ class GroupChatManager:
 
         return new_group_chat
 
-    async def add_user_to_group(self, group_id: int, user_id: int, websocket: WebSocket, db: Session):
+    async def add_user_to_group(self, group_id: int, user_id: int, type_of_action: str, websocket: WebSocket, db: Session):
         """Add a user to a group chat and persist the membership in the database."""
         # Fetch the group from the database
+        print("Adding ....")
         group_chat = db.query(GroupChat).filter(GroupChat.id == group_id).first()
         if not group_chat:
             raise ValueError(f"Group with id {group_id} does not exist.")
 
         # Fetch the user from the database
         user = db.query(User).filter(User.id == user_id).first()
+        print(f"User: {user.id}")
         if not user:
             raise ValueError(f"User with id {user_id} does not exist.")
 
         # Check if the user is already a member of the group
         if user not in group_chat.users:
             try:
+                print("Adding134")
                 group_chat.users.append(user)
                 db.commit()
             except IntegrityError:
@@ -188,7 +193,8 @@ class GroupChatManager:
                 raise ValueError(f"Failed to add user {user_id} to group {group_id} due to a database error.")
 
         # Add the user's WebSocket connection to the in-memory group structure
-        await self.connection_manager.add_user_to_chat(group_id, "group", websocket)
+        if type_of_action == "joining":
+            await self.connection_manager.add_user_to_chat(group_id, "group", websocket)
 
     async def send_group_message(self, group_id: int, sender_id: int, message_text: str, db: Session):
         """Send a message to a group chat, store it in the database, and broadcast it to group members."""
@@ -216,17 +222,6 @@ class GroupChatManager:
         except IntegrityError:
             db.rollback()
             raise ValueError("Failed to save the group message to the database.")
-
-        # Prepare the message payload for broadcasting
-        message_payload = {
-            "id": new_message.id,
-            "group_id": group_id,
-            "sender_id": sender_id,
-            "sender_username": sender.username,
-            "content": message_text,
-            "timestamp": new_message.timestamp.isoformat()
-        }
-        print(message_payload)
 
         # Broadcast the message to all WebSocket connections in the group
         await self.connection_manager.send_message_to_chat(group_id, "group", {

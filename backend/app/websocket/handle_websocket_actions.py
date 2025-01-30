@@ -111,7 +111,7 @@ async def handle_join_group_chat(websocket: WebSocket, data: dict, db: Session):
         return
     print("User or Admin")
     # Add the user to the group chat's WebSocket connections
-    await group_chat_manager.add_user_to_group(group_id, user_id, websocket, db)
+    await group_chat_manager.add_user_to_group(group_id, user_id, "joining", websocket, db)
 
     # Retrieve the message history of the group chat
     messages = [
@@ -133,10 +133,13 @@ async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Se
     group_name = data.get("group_name")
     user_id = data.get("user_id")
     adder_name = data.get("adder_name")  # The user who is trying to add another user
-
+    print("Group_name:", group_name)
+    print("User_id:", user_id)
+    print("Adder_name", adder_name)
     user_name = db.query(User).filter(User.id == user_id).first().username
     group_id = db.query(GroupChat).filter(GroupChat.name == group_name).first().id
     adder_id = db.query(User).filter(User.username == adder_name).first().id
+    print("Adder_id:", adder_id)
     if not group_id or not user_id or not adder_id:
         await websocket.send_text("Missing group_id, user_id, or adder_id for adding user to group chat")
         return
@@ -146,21 +149,25 @@ async def handle_add_user_to_group_chat(websocket: WebSocket, data: dict, db: Se
         group_chat = db.query(GroupChat).filter(GroupChat.id == group_id).first()
 
         if not group_chat:
+            print("Group_not_found")
             raise ValueError("Group chat does not exist")
 
         # Check if the adder is part of the group
-        if not any(user.id == adder_id for user in group_chat.users) or adder_id != group_chat.admin_id:
+        print("Users:", group_chat.users)
+        print("Admin:", group_chat.admin_id)
+        print([i.id for i in group_chat.users])
+        if not any(user.id == adder_id for user in group_chat.users) and adder_id != group_chat.admin_id:
+            print("Adder is not in group")
             raise ValueError("You are not a member of this group. Cannot add users.")
 
         # Add the user to the group
-        await group_chat_manager.add_user_to_group(group_id, user_id, websocket, db)
+        await group_chat_manager.add_user_to_group(group_id, user_id, "adding", websocket, db)
         print("Added successfully")
 
         await group_chat_manager.send_group_message(group_id,
                                                     adder_id,
                                                     f"I added {user_name}",
                                                     db)
-        # Notify the group members
     except ValueError as e:
         await websocket.send_text(f"Error adding user to group chat: {str(e)}")
 
@@ -175,11 +182,15 @@ async def handle_send_group_message(websocket: WebSocket, data: dict, db: Sessio
     print("Message:", message)
     print("Sender_username:", sender_username)
     print("Content:", content)
-    group_id = db.query(GroupChat).filter(GroupChat.name == group_name).first().id
+    group = db.query(GroupChat).filter(GroupChat.name == group_name).first()
     sender_id = db.query(User).filter(User.username == sender_username).first().id
-    print("Group_id:", group_id)
+    if not any(user.id == sender_id for user in group.users) and sender_id != group.admin_id:
+        print("Not in the group.")
+        await websocket.send_json({"content": "User is not in the group. You can not send messages"})
+        return
+    print("Group_id:", group.id)
     print("Sender_id:", sender_id)
-    if not group_id or not message:
+    if not group.id or not message:
         await websocket.send_text("Missing group_id or message for group chat")
         return
-    await group_chat_manager.send_group_message(group_id, sender_id, content, db)
+    await group_chat_manager.send_group_message(group.id, sender_id, content, db)
