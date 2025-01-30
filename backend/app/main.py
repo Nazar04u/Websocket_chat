@@ -188,6 +188,9 @@ async def get_group_members(group_name: str, db: Session = Depends(get_db)):
         return {"error": "Group not found"}
 
     members = [{"id": user.id, "username": user.username} for user in group.users]
+    admin_id = group.admin_id
+    admin_username = db.query(User).filter_by(id=admin_id).first().username
+    members.append({"id": admin_id, "username": admin_username})
     return {"group_name": group_name, "members": members}
 
 
