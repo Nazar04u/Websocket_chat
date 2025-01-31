@@ -16,7 +16,6 @@ class ConnectionManager:
         """Connect a WebSocket and associate it with a CSRF token and access token."""
         try:
             username = await verify_connection(websocket, access_token)
-            print("Username:", username)
             if not username:
                 raise HTTPException(status_code=401, detail="Invalid access token")
             # Store the username and csrf_token with the WebSocket
@@ -32,13 +31,10 @@ class ConnectionManager:
     def disconnect(self, websocket: WebSocket):
         """Disconnect the WebSocket and remove it from active connections."""
         websocket_to_delete = websocket
-        print("Websocket_to_delete:", websocket)
-        print("Connections:", self.active_connections)
         self.active_connections.pop(websocket_to_delete, None)
         for key, values in self.active_connections.items():
             if isinstance(values, list) and websocket_to_delete in values:
                 values.remove(websocket_to_delete)
-        print("Connection after deletion:", self.active_connections)
 
     async def send_personal_message(self, message: str, websocket: WebSocket):
         """Send a personal message to a specific WebSocket."""
@@ -50,42 +46,31 @@ class ConnectionManager:
 
     async def send_message_to_chat(self, chat_id: int, type_of_connection: str, message: dict):
         """Send a message to all WebSocket connections in the specified chat."""
-        print("Sending message to chat")
-        print("Connections_sending", self.active_connections)
         if type_of_connection == "private":
-            print(0)
             if f"private_{chat_id}" in self.active_connections:
                 message["timestamp"] = datetime.now().isoformat()
                 connections = self.active_connections[f"private_{chat_id}"]
-                print(connections)
                 for websocket in connections:
                     await websocket.send_json(message)
         if type_of_connection == "group":
-            print(1)
             if f"group_{chat_id}" in self.active_connections:
                 message["timestamp"] = datetime.now().isoformat()
                 connections = self.active_connections[f"group_{chat_id}"]
                 for websocket in connections:
-                    print(f"Websocket: {websocket} sends a message: {message}")
                     await websocket.send_json(message)
 
     async def add_user_to_chat(self, chat_id: int, type_of_connection: str, websocket: WebSocket):
         """Add a WebSocket connection to a specific chat."""
-        print("Adding to chat")
-        print("Connections:", self.active_connections)
         if type_of_connection == "private":
-            print(0)
             chat_code = f"private_{chat_id}"
             if chat_code not in self.active_connections:
                 self.active_connections[chat_code] = []
             self.active_connections[chat_code].append(websocket)
         if type_of_connection == "group":
-            print(1)
             chat_code = f"group_{chat_id}"
             if chat_code not in self.active_connections:
                 self.active_connections[chat_code] = []
             self.active_connections[chat_code].append(websocket)
-        print("Updated connections:", self.active_connections)
 
 
 class PrivateChatManager:
@@ -171,21 +156,18 @@ class GroupChatManager:
     async def add_user_to_group(self, group_id: int, user_id: int, type_of_action: str, websocket: WebSocket, db: Session):
         """Add a user to a group chat and persist the membership in the database."""
         # Fetch the group from the database
-        print("Adding ....")
         group_chat = db.query(GroupChat).filter(GroupChat.id == group_id).first()
         if not group_chat:
             raise ValueError(f"Group with id {group_id} does not exist.")
 
         # Fetch the user from the database
         user = db.query(User).filter(User.id == user_id).first()
-        print(f"User: {user.id}")
         if not user:
             raise ValueError(f"User with id {user_id} does not exist.")
 
         # Check if the user is already a member of the group
         if user not in group_chat.users and user.id != group_chat.admin_id:
             try:
-                print("Adding134")
                 group_chat.users.append(user)
                 db.commit()
             except IntegrityError:

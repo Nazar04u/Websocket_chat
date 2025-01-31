@@ -104,7 +104,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
                 }
             )
             .then((response) => {
-                console.log("Group created successfully:", response.data);
                 setGroupChats((prev) => [...prev, response.data]);
                 setNewGroupName("");
                 checkAdminGroups([...groupChats, response.data]);
@@ -143,7 +142,6 @@ function GroupChatList({ currentUser, onSelectGroup }) {
     };
 
     const handleJoinGroup = (group) => {
-        console.log("Join button clicked for:", group);
         if (typeof onSelectGroup !== "function") {
             console.error("onSelectGroup is not a function or is undefined.");
             return;

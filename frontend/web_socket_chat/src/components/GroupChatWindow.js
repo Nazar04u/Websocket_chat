@@ -33,7 +33,6 @@ function GroupChatWindow({ currentUser, group }) {
         try {
             const response = await fetch(`http://localhost:8008/group/${group.group_name}/members`);
             const data = await response.json();
-            console.log(data)
             if (data.members) {
                 setGroupMembers(data.members);
                 filterAvailableUsers(data.members);
@@ -55,7 +54,6 @@ function GroupChatWindow({ currentUser, group }) {
         try {
             const response = await fetch(`http://localhost:8008/${group.group_name}/check_admin/${currentUser.username}`);
             const data = await response.json();
-            console.log(data)
             setIsAdmin(data.admin);
         } catch (error) {
             console.error("Error checking admin status:", error);
