@@ -204,6 +204,22 @@ async def check_admin(group_name: str, admin_name: str, db: Session = Depends(ge
         return {"admin": False}
 
 
+@app.delete("/group/{group_name}/delete/{admin_name}")
+async def delete_group(group_name: str, admin_name: str, db: Session = Depends(get_db)):
+    group = db.query(GroupChat).filter(GroupChat.name == group_name).first()
+    admin = db.query(User).filter(User.username == admin_name).first()
+
+    if not group or not admin:
+        raise HTTPException(status_code=404, detail="Group or Admin not found")
+
+    if not check_if_admin(admin.id, group.id, db):
+        raise HTTPException(status_code=403, detail="You are not an admin")
+
+    db.delete(group)
+    db.commit()
+    return {"message": "Group deleted successfully"}
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, db: Session = Depends(get_db)):
     await websocket.accept()
