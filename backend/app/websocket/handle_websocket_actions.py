@@ -36,6 +36,9 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
     elif action == "join_group_chat":
         print("Joining a group chat")
         await handle_join_group_chat(websocket, data, db)
+    elif action == "delete_user_from_chat":
+        print("Deleting user from chat")
+        await handle_delete_user_from_chat(websocket, data, db)
     else:
         await websocket.send_text("Unknown action")
 
@@ -195,3 +198,28 @@ async def handle_send_group_message(websocket: WebSocket, data: dict, db: Sessio
         await websocket.send_text("Missing group_id or message for group chat")
         return
     await group_chat_manager.send_group_message(group.id, sender_id, content, db)
+
+
+async def handle_delete_user_from_chat(websocket: WebSocket, data: dict, db: Session):
+    admin_name = data.get('admin_name')
+    user_id = data.get('user_id')
+    group_name = data.get('group_name')
+
+    admin = db.query(User).filter(User.username == admin_name).first()
+    group = db.query(GroupChat).filter(GroupChat.name == group_name).first()
+    user = db.query(User).get(user_id)
+    if user not in group.users:
+        await websocket.send_json({"content": "User is not in the group."})
+        return
+    if not group:
+        await websocket.send_json({"content": "There is no such group"})
+        return
+    if not admin or admin.id != group.admin_id:
+        await websocket.send_json({"content": "You are not the admin, you cannot delete users."})
+        return
+
+    await group_chat_manager.delete_user_from_chat(admin_name=admin_name,
+                                                   user_name=user.username,
+                                                   group_id=group.id,
+                                                   db=db)
+
