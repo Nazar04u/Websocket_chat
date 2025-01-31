@@ -6,7 +6,7 @@ Using websocket technology it allows users to communicate with each other in rea
 
 ## Features
 - RESTful APIs for managing websocket and http connection.
-- Authoriation of each user.
+- Authorization of each user.
 - Admin features for group chats.
 
 ---
@@ -76,7 +76,7 @@ Follow these steps to install and run the application on Windows and macOS.
 6. **Run the Application**
     In the first terminal run:
    ```bash
-   uvicorn app.main:app --port=8000 --reload
+   uvicorn app.main:app --port=8008 --reload
    ```
    In the second run:
    ```bash
