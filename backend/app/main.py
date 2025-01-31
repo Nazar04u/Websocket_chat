@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.websockets import WebSocketDisconnect
-
+from app.utils.admin_actions import check_if_admin
 from app.models import GroupChat, User
 from app.websocket.handle_websocket_actions import handle_websocket_action, connection_manager
 
@@ -192,6 +192,16 @@ async def get_group_members(group_name: str, db: Session = Depends(get_db)):
     admin_username = db.query(User).filter_by(id=admin_id).first().username
     members.append({"id": admin_id, "username": admin_username})
     return {"group_name": group_name, "members": members}
+
+
+@app.get("/{group_name}/check_admin/{admin_name}")
+async def check_admin(group_name: str, admin_name: str, db: Session = Depends(get_db)):
+    group = db.query(GroupChat).filter(GroupChat.name == group_name).first()
+    admin = db.query(User).filter(User.username == admin_name).first()
+    if check_if_admin(admin_id=admin.id, group_id=group.id, db=db):
+        return {"admin": True}
+    else:
+        return {"admin": False}
 
 
 @app.websocket("/ws")

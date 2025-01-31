@@ -36,7 +36,7 @@ async def handle_websocket_action(websocket: WebSocket, message: dict, db: Sessi
     elif action == "join_group_chat":
         print("Joining a group chat")
         await handle_join_group_chat(websocket, data, db)
-    elif action == "delete_user_from_chat":
+    elif action == "remove_user_from_group_chat":
         print("Deleting user from chat")
         await handle_delete_user_from_chat(websocket, data, db)
     else:
@@ -201,6 +201,7 @@ async def handle_send_group_message(websocket: WebSocket, data: dict, db: Sessio
 
 
 async def handle_delete_user_from_chat(websocket: WebSocket, data: dict, db: Session):
+
     admin_name = data.get('admin_name')
     user_id = data.get('user_id')
     group_name = data.get('group_name')
@@ -218,7 +219,7 @@ async def handle_delete_user_from_chat(websocket: WebSocket, data: dict, db: Ses
         await websocket.send_json({"content": "You are not the admin, you cannot delete users."})
         return
 
-    await group_chat_manager.delete_user_from_chat(admin_name=admin_name,
+    await group_chat_manager.delete_user_from_chat(admin_id=admin.id,
                                                    user_name=user.username,
                                                    group_id=group.id,
                                                    db=db)

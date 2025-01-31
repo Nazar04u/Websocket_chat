@@ -183,7 +183,7 @@ class GroupChatManager:
             raise ValueError(f"User with id {user_id} does not exist.")
 
         # Check if the user is already a member of the group
-        if user not in group_chat.users:
+        if user not in group_chat.users and user.id != group_chat.admin_id:
             try:
                 print("Adding134")
                 group_chat.users.append(user)
@@ -229,7 +229,7 @@ class GroupChatManager:
             "content": message_text
         })
 
-    async def delete_user_from_chat(self, admin_name: str, user_name: str, group_id: int, db: Session):
+    async def delete_user_from_chat(self, admin_id: int, user_name: str, group_id: int, db: Session):
         group = db.query(GroupChat).get(group_id)
         user = db.query(User).filter(User.username == user_name).first()
         if not user:
@@ -242,8 +242,8 @@ class GroupChatManager:
         except IntegrityError:
             db.rollback()
             raise IntegrityError("Error to delete user from the group")
-        await self.connection_manager.send_message_to_chat(group_id, "group", {
-            "sender_username": admin_name,
-            "content": f"I deleted {user_name} from this group"
-        })
-        
+        await self.send_group_message(group_id,
+                                      admin_id,
+                                      f"I deleted {user.username} from group",
+                                      db)
+
