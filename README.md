@@ -17,7 +17,7 @@ Using websocket technology it allows users to communicate with each other in rea
 Ensure you have Python 3.10+, Node.js installed on your system.
 
 ### Installation
-
+### Variant1(run locally)
 Follow these steps to install and run the application on Windows and macOS.
 
 1. **Clone the Repository**
@@ -97,7 +97,27 @@ Follow these steps to install and run the application on Windows and macOS.
    In register endpooint register user and then login.
    To use full app go to  [http://localhost:3000/](http://localhost:3000/)
 ---
+### Variant2(run with Docker)
+   1. **Clone the Repository**
+   Open terminal:
 
+   ```bash
+   git clone https://github.com/Nazar04u/Websocket_chat
+   ```
+   Enter a root folder of the project
+   ```bash
+   cd Websocket_chat/
+   ```
+   2. Make sure that Docker is running on your desktop. Then run this command.
+   ```bash
+   docker-compose up --build
+   ```
+   3. After the installation you see a container called websocket_chat. Click there.
+   Then you will see three other containers(one for backend and two for frontend).
+   Those for frontend is imitating two different clients(so it will need to run them in two browsers(Chrome and Firefox, for example)).
+   After you open those frontend containers register two users or more and feel free to communicate with them. Of course you could adjust, 
+   docker-compose.yaml file to create more than 2 clients.
+   
 ### Notes
 
 - Ensure you have `Python 3.10` or newer installed on your system.
