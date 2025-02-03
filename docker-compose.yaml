@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./backend:/app
+      # Remove any persistent volume that might contain the db.sqlite3 file
+      # So the SQLite database is only created inside the container
+      - /app/db.sqlite3  # This ensures the db is recreated each time (no volume to persist it)
+    environment:
+      - DATABASE_URL=sqlite:///app/db.sqlite3
+      - SECRET_KEY=supersecretkey
+
+  frontend-client1:
+    build:
+      context: ./frontend/web_socket_chat
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+
+  frontend-client2:
+    build:
+      context: ./frontend/web_socket_chat
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3000"
+    depends_on:
+      - backend
