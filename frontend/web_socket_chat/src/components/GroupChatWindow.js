@@ -231,6 +231,7 @@ function GroupChatWindow({ currentUser, group }) {
                     >
                         <strong style={styles.senderName}>{msg.sender_username}</strong>
                         <p style={styles.messageText}>{msg.content}</p>
+                        <div style={styles.timestamp}>{new Date(msg.timestamp).toLocaleString()}</div>
                     </div>
                 ))}
             </div>
@@ -378,6 +379,11 @@ const styles = {
     messageText: {
         fontSize: "14px",
         marginTop: "2px",
+    },
+    timestamp: {
+        fontSize: "16px",
+        color: "#000",
+        marginTop: "5px",
     },
     inputContainer: {
         display: "flex",
