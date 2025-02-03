@@ -6,7 +6,7 @@ Using websocket technology it allows users to communicate with each other in rea
 
 ## Features
 - RESTful APIs for managing websocket and http connection.
-- Authoriation of each user.
+- Authorization of each user.
 - Admin features for group chats.
 
 ---
@@ -76,7 +76,7 @@ Follow these steps to install and run the application on Windows and macOS.
 6. **Run the Application**
     In the first terminal run:
    ```bash
-   uvicorn app.main:app --port=8000 --reload
+   uvicorn app.main:app --port=8008 --reload
    ```
    In the second run:
    ```bash
@@ -93,7 +93,7 @@ Follow these steps to install and run the application on Windows and macOS.
    then click yes(it will open a client on a new port)
 
 7. **Access API Documentation**
-   Open your browser and navigate to [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to explore the API endpoints.
+   Open your browser and navigate to [http://127.0.0.1:8008/docs](http://127.0.0.1:8008/docs) to explore the API endpoints.
    In register endpooint register user and then login.
    To use full app go to  [http://localhost:3000/](http://localhost:3000/)
 ---
